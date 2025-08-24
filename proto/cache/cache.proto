@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package cache;
+
+option go_package="github.com/prithivilaksh/streaming-cache/proto/cache;cache";
+
+service Cache{
+
+    rpc Get(Tkr) returns (TkrData){}
+    rpc GetStream(Tkr) returns (stream TkrData){}
+
+    rpc Set(TkrData) returns (Ack){}
+    rpc SetStream(stream TkrData) returns (stream Ack){}
+
+}
+
+message Tkr{
+    string tkr = 1;
+}
+
+message TkrData{
+    string tkr = 1;
+    int64 timestamp = 2;
+    double price = 3;
+    int64 volume = 4;
+}
+
+message Ack{
+    bool success = 1;
+}
+
+
+// protoc --go_out=. \
+// --go_opt=paths=source_relative \
+// --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+// proto/cache/cache.proto
