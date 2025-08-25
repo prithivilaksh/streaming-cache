@@ -11,7 +11,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o client .
 
 # Final stage
 FROM alpine:latest
@@ -19,11 +19,7 @@ FROM alpine:latest
 WORKDIR /root/
 
 # Copy the binary from builder
-COPY --from=builder /app/server .
+COPY --from=builder /app/client .
 
-# Expose the port the server runs on
-EXPOSE 50051-50054
-
-# Command to run the executable with environment variables
-CMD ["./server"]
-
+# Command to run the executable
+CMD ["./client"]

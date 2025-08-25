@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
-	"fmt"
 	"io"
 	"net"
 	"os"
@@ -165,11 +163,13 @@ func (s *cacheServer) SetStream(stream pb.Cache_SetStreamServer) error {
 	}
 }
 
-var port = flag.String("port", "50051", "port to listen on")
-
 func main() {
-	flag.Parse()
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", *port))
+
+	addr := os.Getenv("SERVER_ADDRESS")
+	if addr == "" {
+		addr = "localhost:50051" // default
+	}
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		panic(err)
 	}

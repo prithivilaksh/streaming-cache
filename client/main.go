@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"math/rand/v2"
+	"os"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc"
@@ -25,8 +26,8 @@ import (
 
 func getStream(cacheClient pb.CacheClient) {
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, time.Second*40)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(ctx, time.Second*40)
+	// defer cancel()
 
 	stream, err := cacheClient.GetStream(ctx, &pb.Tkr{Tkr: "GOOGL"})
 	if err != nil {
@@ -52,8 +53,8 @@ func getStream(cacheClient pb.CacheClient) {
 func setStream(cacheClient pb.CacheClient) {
 
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, time.Second*40)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(ctx, time.Second*40)
+	// defer cancel()
 
 	stream, err := cacheClient.SetStream(ctx)
 	if err != nil {
@@ -65,7 +66,7 @@ func setStream(cacheClient pb.CacheClient) {
 			Tkr:       "GOOGL",
 			Timestamp: time.Now().Unix(),
 			Price:     rand.Float64() * 100,
-			Volume:    rand.Int64(),
+			Volume:    100000000 - int64(rand.Int32N(1000000)),
 		}
 		if err := stream.Send(tkrData); err != nil {
 			panic(err)
@@ -74,17 +75,18 @@ func setStream(cacheClient pb.CacheClient) {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(ack.Success)
+		fmt.Println("Set ack received from server: ", ack.Success)
 		time.Sleep(time.Duration(rand.Int32N(10)) * time.Second)
 	}
 }
 
-var serverAddr = flag.String("addr", "localhost:50051", "The server address in the format of host:port")
-
 func main() {
-	flag.Parse()
 
-	grpcClient, err := grpc.NewClient(*serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	addr := os.Getenv("SERVER_ADDRESS")
+	if addr == "" {
+		addr = "localhost:50051" // default
+	}
+	grpcClient, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
 	}
@@ -94,7 +96,11 @@ func main() {
 	cacheClient := pb.NewCacheClient(grpcClient)
 
 	// get(cacheClient, "GOOGL")
-	getStream(cacheClient)
 	// set(cacheClient)
-	setStream(cacheClient)
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go setStream(cacheClient)
+	go getStream(cacheClient)
+	wg.Wait()
+
 }
