@@ -1,4 +1,4 @@
-# Streaming Cache
+# Streaming Cache (Tickr Cast - Real time Ticker updates)
 
 A **gRPC-based streaming cache service** backed by **Redis Cloud**.  
 Enables real-time streaming writes and reads of ticker data (price, volume, timestamp), designed for trading and financial applications.
