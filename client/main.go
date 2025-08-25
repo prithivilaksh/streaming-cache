@@ -26,8 +26,8 @@ import (
 
 func getStream(cacheClient pb.CacheClient) {
 	ctx := context.Background()
-	// ctx, cancel := context.WithTimeout(ctx, time.Second*40)
-	// defer cancel()
+	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
+	defer cancel()
 
 	stream, err := cacheClient.GetStream(ctx, &pb.Tkr{Tkr: "GOOGL"})
 	if err != nil {
@@ -37,10 +37,13 @@ func getStream(cacheClient pb.CacheClient) {
 	for {
 		res, err := stream.Recv()
 		if err == io.EOF {
-			break
+			fmt.Println("Server closed the stream")
+			return
 		}
 		if err != nil {
-			panic(err)
+			// if context timed out/canceled, it will show up here
+			fmt.Println("Stream error:", err)
+			return
 		}
 		fmt.Println(res)
 	}
@@ -53,8 +56,8 @@ func getStream(cacheClient pb.CacheClient) {
 func setStream(cacheClient pb.CacheClient) {
 
 	ctx := context.Background()
-	// ctx, cancel := context.WithTimeout(ctx, time.Second*40)
-	// defer cancel()
+	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
+	defer cancel()
 
 	stream, err := cacheClient.SetStream(ctx)
 	if err != nil {
@@ -62,21 +65,35 @@ func setStream(cacheClient pb.CacheClient) {
 	}
 
 	for {
-		tkrData := &pb.TkrData{
-			Tkr:       "GOOGL",
-			Timestamp: time.Now().Unix(),
-			Price:     rand.Float64() * 100,
-			Volume:    100000000 - int64(rand.Int32N(1000000)),
+		select {
+		case <-ctx.Done():
+			fmt.Println("Context timed out, closing stream")
+			stream.CloseSend() // optional, signals server
+			return
+		default:
+			tkrData := &pb.TkrData{
+				Tkr:       "GOOGL",
+				Timestamp: time.Now().Unix(),
+				Price:     100 + rand.Float64()*4,
+				Volume:    100000000 - int64(rand.Int32N(1000000)),
+			}
+			if err := stream.Send(tkrData); err != nil {
+				fmt.Println("Send error:", err)
+				return
+			}
+
+			ack, err := stream.Recv()
+			if err == io.EOF {
+				fmt.Println("Server closed stream")
+				return
+			}
+			if err != nil {
+				fmt.Println("Recv error:", err)
+				return
+			}
+			fmt.Println("Set ack received from server:", ack.Success)
+			time.Sleep(time.Duration(rand.Int32N(10)) * time.Second)
 		}
-		if err := stream.Send(tkrData); err != nil {
-			panic(err)
-		}
-		ack, err := stream.Recv()
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println("Set ack received from server: ", ack.Success)
-		time.Sleep(time.Duration(rand.Int32N(10)) * time.Second)
 	}
 }
 
