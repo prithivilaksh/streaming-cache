@@ -15,7 +15,6 @@ Enables real-time streaming writes and reads of ticker data (price, volume, time
 - [Running with Docker Compose](#running-with-docker-compose)
 - [Testing with Postman](#testing-with-postman)
 - [Development](#development)
-- [License](#license)
 
 ## Requirements
 
@@ -169,7 +168,3 @@ docker-compose up --build
    cd client
    go run main.go
    ```
-
-## License
-
-MIT License
