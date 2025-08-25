@@ -3,10 +3,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: streaming-cache-server
+    container_name: cache-server
     ports:
       - "50051:50051"
+    restart: unless-stopped
+    environment:
+      - GRPC_GO_LOG_VERBOSITY_LEVEL=99
+      - GRPC_GO_LOG_SEVERITY_LEVEL=info
+      - SERVER_ADDRESS=server:50051
     env_file:
       - .env
-    restart: unless-stopped
-    
